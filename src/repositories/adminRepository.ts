@@ -48,7 +48,7 @@ export async function getTripMetricsRaw(
 
     FROM trips t
     LEFT JOIN bookings b ON b.trip_id = t.id
-    WHERE t.id = ${tripId}::uuid
+    WHERE t.id::text = ${tripId}
     GROUP BY t.id, t.title, t.max_capacity, t.available_seats
   `;
 

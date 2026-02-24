@@ -4,7 +4,7 @@ import { processWebhookService } from "../services/webhookService";
 import { AppError } from "../utils/AppError";
 
 const webhookSchema = z.object({
-  booking_id: z.string().uuid("booking_id must be a valid UUID"),
+  booking_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "booking_id must be a valid UUID"),
   status: z.enum(["success", "failed"]),
   idempotency_key: z.string().min(1, "idempotency_key is required"),
 });

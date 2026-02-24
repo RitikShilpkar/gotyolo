@@ -29,7 +29,7 @@ export async function findTripByIdForUpdate(
   tx: TxClient
 ): Promise<TripRow | null> {
   const rows = await tx.$queryRaw<TripRow[]>`
-    SELECT * FROM trips WHERE id = ${tripId}::uuid FOR UPDATE
+    SELECT * FROM trips WHERE id::text = ${tripId} FOR UPDATE
   `;
   return rows[0] ?? null;
 }
@@ -44,7 +44,7 @@ export async function decrementAvailableSeats(
     UPDATE trips
     SET available_seats = available_seats - ${numSeats},
         updated_at = NOW()
-    WHERE id = ${tripId}::uuid
+    WHERE id::text = ${tripId}
   `;
 }
 
@@ -58,7 +58,7 @@ export async function incrementAvailableSeats(
     UPDATE trips
     SET available_seats = available_seats + ${numSeats},
         updated_at = NOW()
-    WHERE id = ${tripId}::uuid
+    WHERE id::text = ${tripId}
   `;
 }
 

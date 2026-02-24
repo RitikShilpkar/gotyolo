@@ -74,6 +74,6 @@ export async function bulkExpireBookings(
   await tx.$executeRaw`
     UPDATE bookings
     SET state = 'EXPIRED', updated_at = NOW()
-    WHERE id = ANY(${ids}::uuid[])
+    WHERE id::text = ANY(${ids})
   `;
 }

@@ -58,7 +58,7 @@ export async function cancelBookingService(
         t.cancellation_fee_percent
       FROM bookings b
       JOIN trips t ON t.id = b.trip_id
-      WHERE b.id = ${bookingId}::uuid
+      WHERE b.id::text = ${bookingId}
       FOR UPDATE OF b
     `;
 

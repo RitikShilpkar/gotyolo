@@ -4,7 +4,7 @@ import { createBookingService, getBookingService } from "../services/bookingServ
 import { AppError } from "../utils/AppError";
 
 const createBookingSchema = z.object({
-  trip_id: z.string().uuid("trip_id must be a valid UUID"),
+  trip_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "trip_id must be a valid UUID"),
   user_id: z.string().min(1, "user_id is required"),
   num_seats: z.number().int().min(1, "num_seats must be at least 1"),
   idempotency_key: z.string().min(1, "idempotency_key is required"),
