@@ -2,6 +2,7 @@ import express from "express";
 import { errorHandler } from "./middlewares/errorHandler";
 import tripRoutes from "./routes/tripRoutes";
 import bookingRoutes from "./routes/bookingRoutes";
+import webhookRoutes from "./routes/webhookRoutes";
 
 const app = express();
 
@@ -16,7 +17,7 @@ app.get("/health", (_req, res) => {
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/trips", tripRoutes);
 app.use("/bookings", bookingRoutes);
-// app.use("/webhooks", webhookRoutes);   — added in Step 5
+app.use("/webhooks", webhookRoutes);
 // app.use("/admin", adminRoutes);        — added in Step 8
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
