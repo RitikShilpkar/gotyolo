@@ -3,7 +3,6 @@ import { prisma } from "../db/client";
 import {
   findTripByIdForUpdate,
   decrementAvailableSeats,
-  findTripById,
 } from "../repositories/tripRepository";
 import {
   createBooking,
@@ -37,11 +36,9 @@ export async function createBookingService(
 
   // ── Main transaction — everything below is atomic ─────────────────────────
   const booking = await prisma.$transaction(async (tx) => {
-    // Step 1: Acquire exclusive row lock on the trip.
-    // ─────────────────────────────────────────────────────────────────────────
-    // Any concurrent booking for the same trip will BLOCK here until this
-    // transaction commits or rolls back. This serialises all seat changes for
-    // a given trip, making available_seats accurate under high concurrency.
+    // FIX for BUG-1: SELECT FOR UPDATE serialises all booking attempts for
+    // this trip. Concurrent transactions block here until the lock is released,
+    // guaranteeing available_seats is read and decremented atomically.
     const trip = await findTripByIdForUpdate(data.trip_id, tx);
 
     if (!trip) {
@@ -56,7 +53,7 @@ export async function createBookingService(
       throw new AppError("Trip has already departed", 400);
     }
 
-    // Step 2: Check seat availability — safe to read because we hold the lock
+    // Step 2: Check seat availability — safe because we hold the lock
     if (trip.available_seats < data.num_seats) {
       throw new AppError(
         `Only ${trip.available_seats} seat(s) available`,
@@ -90,7 +87,8 @@ export async function createBookingService(
         tripId: data.trip_id,
         userId: data.user_id,
         numSeats: data.num_seats,
-        priceAtBooking: new Prisma.Decimal(trip.price),
+        // Spec: price_at_booking = total price paid (price per seat × num_seats)
+        priceAtBooking: new Prisma.Decimal(trip.price).mul(data.num_seats),
         expiresAt,
         idempotencyKey: data.idempotency_key,
       },

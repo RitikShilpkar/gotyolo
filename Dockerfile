@@ -12,8 +12,9 @@ RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src
 
-RUN npm run build
+# Generate Prisma client BEFORE tsc — the generated types are required for compilation
 RUN npm run db:generate
+RUN npm run build
 
 # ─── Stage 2: Production runtime ──────────────────────────────────────────────
 FROM node:22-alpine AS runner

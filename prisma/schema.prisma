@@ -82,6 +82,7 @@ model Booking {
 
   // Populated on cancellation
   refundAmount     Decimal?     @map("refund_amount") @db.Decimal(10, 2)
+  cancelledAt      DateTime?    @map("cancelled_at")
 
   // Idempotency: same user retrying the same client request gets the same booking
   idempotencyKey   String       @map("idempotency_key")

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { createTrip, findTripById } from "../repositories/tripRepository";
+import { createTrip, findTripById, listPublishedTrips } from "../repositories/tripRepository";
 import { AppError } from "../utils/AppError";
 
 const createTripSchema = z.object({
@@ -36,6 +36,14 @@ export async function createTripHandler(
   });
 
   res.status(201).json({ trip });
+}
+
+export async function listTripsHandler(
+  _req: Request,
+  res: Response
+): Promise<void> {
+  const trips = await listPublishedTrips();
+  res.json({ trips });
 }
 
 export async function getTripHandler(

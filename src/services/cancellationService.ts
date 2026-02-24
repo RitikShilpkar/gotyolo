@@ -24,18 +24,17 @@ export interface CancellationResult {
   isBeforeCutoff: boolean;
 }
 
-// Refund = total_paid × (1 − fee%)
+// Refund = price_at_booking × (1 − fee%)
+// price_at_booking is already the total paid (price per seat × num_seats)
 // Uses Prisma.Decimal for exact arithmetic — never use floating point for money
 function calculateRefund(
-  pricePerSeat: Prisma.Decimal,
-  numSeats: number,
+  priceAtBooking: Prisma.Decimal,
   cancellationFeePercent: Prisma.Decimal
 ): Prisma.Decimal {
-  const totalPaid = pricePerSeat.mul(numSeats);
   const keepFraction = new Prisma.Decimal(1).sub(
     cancellationFeePercent.div(100)
   );
-  return totalPaid.mul(keepFraction).toDecimalPlaces(2);
+  return priceAtBooking.mul(keepFraction).toDecimalPlaces(2);
 }
 
 export async function cancelBookingService(
@@ -90,11 +89,20 @@ export async function cancelBookingService(
     );
     const isBeforeCutoff = new Date() < cutoffDate;
 
+    // Spec: after the cutoff only CONFIRMED bookings may be cancelled.
+    // A PENDING_PAYMENT booking past the cutoff will auto-expire — the user
+    // cannot explicitly cancel it (no payment has been made to refund).
+    if (!isBeforeCutoff && row.state !== "CONFIRMED") {
+      throw new AppError(
+        "Only confirmed bookings can be cancelled after the refund cutoff date",
+        409
+      );
+    }
+
     // ── Step 4: Refund calculation ────────────────────────────────────────────
     const refundAmount = isBeforeCutoff
       ? calculateRefund(
           new Prisma.Decimal(row.price_at_booking),
-          row.num_seats,
           new Prisma.Decimal(row.cancellation_fee_percent)
         )
       : new Prisma.Decimal(0);
@@ -103,7 +111,7 @@ export async function cancelBookingService(
     await updateBookingState(
       bookingId,
       "CANCELLED",
-      { refundAmount },
+      { refundAmount, cancelledAt: new Date() },
       tx
     );
 

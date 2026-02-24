@@ -41,7 +41,7 @@ export async function createBooking(
 export async function updateBookingState(
   id: string,
   state: BookingState,
-  extras: Partial<Pick<Booking, "refundAmount" | "paymentReference">>,
+  extras: Partial<Pick<Booking, "refundAmount" | "paymentReference" | "cancelledAt">>,
   tx?: TxClient
 ): Promise<Booking> {
   const client = tx ?? prisma;

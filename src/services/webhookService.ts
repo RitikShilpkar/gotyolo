@@ -60,7 +60,13 @@ export async function processWebhookService(
 
     // ── Step 4: Apply the transition ──────────────────────────────────────
     if (status === "success") {
-      await updateBookingState(booking_id, "CONFIRMED", {}, tx);
+      // Store the payment provider's idempotency_key as the payment reference
+      await updateBookingState(
+        booking_id,
+        "CONFIRMED",
+        { paymentReference: idempotency_key },
+        tx
+      );
       return { alreadyProcessed: false, action: "confirmed" as const };
     }
 

@@ -67,6 +67,13 @@ export async function findTripById(tripId: string) {
   return prisma.trip.findUnique({ where: { id: tripId } });
 }
 
+export async function listPublishedTrips() {
+  return prisma.trip.findMany({
+    where: { status: "PUBLISHED" },
+    orderBy: { startDate: "asc" },
+  });
+}
+
 export async function createTrip(data: {
   title: string;
   destination: string;
