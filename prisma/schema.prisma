@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum TripStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum BookingState {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+// ─────────────────────────────────────────────
+// Trip
+// ─────────────────────────────────────────────
+
+model Trip {
+  id          String     @id @default(uuid())
+  title       String
+  destination String
+  startDate   DateTime   @map("start_date")
+  endDate     DateTime   @map("end_date")
+
+  // Pricing
+  price       Decimal    @db.Decimal(10, 2)
+
+  // Seat inventory — denormalized for O(1) lock + read
+  maxCapacity    Int     @map("max_capacity")
+  availableSeats Int     @map("available_seats")
+
+  // Lifecycle
+  status      TripStatus @default(DRAFT)
+
+  // Refund policy
+  refundableUntilDaysBefore Int     @map("refundable_until_days_before")
+  cancellationFeePercent    Decimal @map("cancellation_fee_percent") @db.Decimal(5, 2)
+
+  bookings    Booking[]
+
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@map("trips")
+}
+
+// ─────────────────────────────────────────────
+// Booking
+// ─────────────────────────────────────────────
+
+model Booking {
+  id               String       @id @default(uuid())
+
+  trip             Trip         @relation(fields: [tripId], references: [id])
+  tripId           String       @map("trip_id")
+
+  // In a real system this would be a FK to a users table.
+  // For this assignment we treat it as an opaque identifier.
+  userId           String       @map("user_id")
+
+  numSeats         Int          @map("num_seats")
+  state            BookingState @default(PENDING_PAYMENT)
+
+  // Snapshot of price at booking time — insulates from price changes
+  priceAtBooking   Decimal      @map("price_at_booking") @db.Decimal(10, 2)
+
+  paymentReference String?      @map("payment_reference")
+
+  // Expiry: set to now() + 15 minutes on creation
+  expiresAt        DateTime     @map("expires_at")
+
+  // Populated on cancellation
+  refundAmount     Decimal?     @map("refund_amount") @db.Decimal(10, 2)
+
+  // Idempotency: same user retrying the same client request gets the same booking
+  idempotencyKey   String       @map("idempotency_key")
+
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  // One user cannot create two bookings with the same idempotency_key
+  @@unique([userId, idempotencyKey], name: "uq_booking_idempotency")
+  // Index for the expiry background job
+  @@index([state, expiresAt], name: "idx_booking_expiry")
+  // Index for trip metrics queries
+  @@index([tripId], name: "idx_booking_trip")
+
+  @@map("bookings")
+}
+
+// ─────────────────────────────────────────────
+// WebhookEvent — idempotency log for payment webhooks
+// ─────────────────────────────────────────────
+
+model WebhookEvent {
+  id             String   @id @default(uuid())
+
+  // Unique key from the payment provider — enforces at-most-once processing
+  idempotencyKey String   @unique @map("idempotency_key")
+
+  bookingId      String   @map("booking_id")
+  status         String   // "success" | "failed"
+
+  processedAt    DateTime @default(now()) @map("processed_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("webhook_events")
+}
