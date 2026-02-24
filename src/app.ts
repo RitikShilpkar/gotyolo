@@ -1,5 +1,7 @@
 import express from "express";
 import { errorHandler } from "./middlewares/errorHandler";
+import tripRoutes from "./routes/tripRoutes";
+import bookingRoutes from "./routes/bookingRoutes";
 
 const app = express();
 
@@ -11,11 +13,11 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// ── Routes (added incrementally as each feature is built) ────────────────────
-// app.use("/trips", tripRoutes);
-// app.use("/bookings", bookingRoutes);
-// app.use("/webhooks", webhookRoutes);
-// app.use("/admin", adminRoutes);
+// ── Routes ────────────────────────────────────────────────────────────────────
+app.use("/trips", tripRoutes);
+app.use("/bookings", bookingRoutes);
+// app.use("/webhooks", webhookRoutes);   — added in Step 5
+// app.use("/admin", adminRoutes);        — added in Step 8
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((_req, res) => {
